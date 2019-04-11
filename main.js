@@ -4,13 +4,21 @@ class Store {
 		this.state = initialState
 	}
 
-	getState() {}
+	getState() {
+		return this.state
+	}
 
-	dispatch(action) {}
+	dispatch(action) {
+		if (action !== undefined){
+			//
+		}
+	}
 
 	subscribe(listener) {}
 
-	replaceReducer(nextReducer) {}
+	replaceReducer(nextReducer) {
+		this.reducer = nextReducer
+	}
 }
 
 function createStore(reducer, initialState) {
