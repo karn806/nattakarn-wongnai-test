@@ -9,12 +9,18 @@ class Store {
 	}
 
 	dispatch(action) {
-		if (action !== undefined){
-			//
+		switch (action) {
+			case undefined:
+				throw new Error('action is undefined')
+			default:
+				const newState = this.reducer(this.state, action)
+				this.state = newState
 		}
 	}
 
-	subscribe(listener) {}
+	subscribe(listener) {
+		
+	}
 
 	replaceReducer(nextReducer) {
 		this.reducer = nextReducer
