@@ -12,6 +12,7 @@ class Store {
 	}
 
 	dispatch(action) {
+		console.log('action1:', action);
 		switch (action) {
 			case undefined:
 				throw new Error('action is undefined')
@@ -19,10 +20,9 @@ class Store {
 				const newState = this.reducer(this.state, action)
 				this.state = newState
 				const listeners = (this.currentListeners = this.nextListeners)
-				console.log('currentLis:', this.currentListeners);
 				for (let i = 0; i < listeners.length; i++) {
 				  const listener = listeners[i]
-				  listener()
+					listener(newState)
 				}
 		}
 		return action
@@ -34,11 +34,29 @@ class Store {
 		}
 	}
 
+	unsubscribe() {
+		if (!isSubscribed) {
+			return
+		}
+
+		if (this.isDispatching) {
+			throw new Error('You may not unsubscribe from a store listener while the reducer is executing.')
+		}
+
+		isSubscribed = false
+
+		this.ensureCanMutateNextListeners()
+		const index = this.nextListeners.indexOf(listener)
+		this.nextListeners.splice(index, 1)
+	}
+
 	subscribe(listener) {
 		// console.log('listen:', listener);
 		if (typeof listener !== 'function') {
 	    throw new Error('Expected the listener to be a function.')
 	  }
+
+		console.log('isDispatching1:', this.isDispatching);
 
 		if (this.isDispatching) {
 	    throw new Error('You may not call store.subscribe() while the reducer is executing.')
