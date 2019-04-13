@@ -1,18 +1,19 @@
 class Store {
 	constructor(reducer, initialState) {
 		this.reducer = reducer
-		this.state = initialState
-		this.isDispatching = false
+		this.state = {
+			initialState: initialState,
+			isDispatching: false
+		}
 		this.currentListeners = []
 		this.nextListeners = []
 	}
 
 	getState() {
-		return this.state
+		return this.state.initialState
 	}
 
 	dispatch(action) {
-		console.log('action1:', action);
 		switch (action) {
 			case undefined:
 				throw new Error('action is undefined')
@@ -34,35 +35,17 @@ class Store {
 		}
 	}
 
-	unsubscribe() {
-		if (!isSubscribed) {
-			return
-		}
-
-		if (this.isDispatching) {
-			throw new Error('You may not unsubscribe from a store listener while the reducer is executing.')
-		}
-
-		isSubscribed = false
-
-		this.ensureCanMutateNextListeners()
-		const index = this.nextListeners.indexOf(listener)
-		this.nextListeners.splice(index, 1)
-	}
-
 	subscribe(listener) {
-		// console.log('listen:', listener);
 		if (typeof listener !== 'function') {
 	    throw new Error('Expected the listener to be a function.')
 	  }
 
-		console.log('isDispatching1:', this.isDispatching);
-
-		if (this.isDispatching) {
+		if (this.state.isDispatching) {
 	    throw new Error('You may not call store.subscribe() while the reducer is executing.')
   	}
 
 		let isSubscribed = true
+		let isDispatching = this.isDispatching
 
 	  this.ensureCanMutateNextListeners()
 	  this.nextListeners.push(listener)
@@ -72,7 +55,7 @@ class Store {
 	      return
 	    }
 
-	    if (this.isDispatching) {
+	    if (isDispatching) {
 	      throw new Error('You may not unsubscribe from a store listener while the reducer is executing.')
 	    }
 
@@ -81,7 +64,7 @@ class Store {
 	    this.ensureCanMutateNextListeners()
 	    const index = this.nextListeners.indexOf(listener)
 	    this.nextListeners.splice(index, 1)
-	  }
+	  }.bind(this)
 	}
 
 	replaceReducer(nextReducer) {
