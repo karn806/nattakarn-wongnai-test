@@ -56,7 +56,6 @@ class Store {
 		this.isSubscribed = true
 		let currentListener = listener
 
-		this.ensureCanMutateNextListeners()
 		if (currentListener !== this.prevListener){
 				this.nextListeners.push(currentListener)
 		}
