@@ -1,32 +1,42 @@
 class Store {
 	constructor(reducer, initialState) {
 		this.reducer = reducer
-		this.state = {
-			initialState: initialState,
-			isDispatching: false
-		}
+		this.state = initialState
+		this.isDispatching = false
 		this.currentListeners = []
-		this.nextListeners = []
+		this.nextListeners = this.currentListeners
+		this.isSubscribed = false
+		this.prevListener = function () {}
 	}
 
 	getState() {
-		return this.state.initialState
+		if (this.isDispatching) {
+      throw new Error('You may not call store.getState() while the reducer is executing.')
+    }
+		return this.state
 	}
 
 	dispatch(action) {
-		switch (action) {
-			case undefined:
-				throw new Error('action is undefined')
-			default:
-				const newState = this.reducer(this.state, action)
-				this.state = newState
-				const listeners = (this.currentListeners = this.nextListeners)
-				for (let i = 0; i < listeners.length; i++) {
-				  const listener = listeners[i]
-					listener(newState)
-				}
+		if (typeof action === 'undefined') {
+			throw new Error('action is undefined')
 		}
-		return action
+		if (this.isDispatching) {
+			throw new Error('Reducers may not dispatch actions.')
+		}
+
+		let currentState = this.getState()
+
+		try {
+	    this.isDispatching = true
+			currentState = this.reducer(currentState, action)
+	  } finally {
+	    this.isDispatching = false
+	  }
+
+		this.state = currentState
+
+		const listeners = this.currentListeners = this.nextListeners
+		listeners.forEach(listener => listener(currentState))
 	}
 
 	ensureCanMutateNextListeners() {
@@ -39,29 +49,31 @@ class Store {
 		if (typeof listener !== 'function') {
 	    throw new Error('Expected the listener to be a function.')
 	  }
-
-		if (this.state.isDispatching) {
+		if (this.isDispatching) {
 	    throw new Error('You may not call store.subscribe() while the reducer is executing.')
   	}
 
-		let isSubscribed = true
-		let isDispatching = this.isDispatching
+		this.isSubscribed = true
+		let currentListener = listener
 
-	  this.ensureCanMutateNextListeners()
-	  this.nextListeners.push(listener)
+		this.ensureCanMutateNextListeners()
+		if (currentListener !== this.prevListener){
+				this.nextListeners.push(currentListener)
+		}
+
+		this.prevListener = currentListener
 
 		return function unsubscribe() {
-	    if (!isSubscribed) {
+	    if (!this.isSubscribed) {
 	      return
 	    }
-
-	    if (isDispatching) {
+	    if (this.isDispatching) {
 	      throw new Error('You may not unsubscribe from a store listener while the reducer is executing.')
 	    }
 
-	    isSubscribed = false
+	    this.isSubscribed = false
 
-	    this.ensureCanMutateNextListeners()
+			this.ensureCanMutateNextListeners()
 	    const index = this.nextListeners.indexOf(listener)
 	    this.nextListeners.splice(index, 1)
 	  }.bind(this)
@@ -80,7 +92,7 @@ function createStore(reducer, initialState) {
 	if (typeof reducer !== 'function') {
 		throw new Error('Expected the reducer to be a function.')
 	} else {
-			return new Store(reducer, initialState)
+		return new Store(reducer, initialState)
 	}
 }
 
